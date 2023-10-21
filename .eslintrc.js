@@ -13,8 +13,27 @@ module.exports = {
     node: true,
     jest: true
   },
-  ignorePatterns: ['.eslintrc.js', 'index.js', 'cli.js'],
+  ignorePatterns: ['.eslintrc.js', 'index.js', 'cli.js', 'jest.config.ts'],
   rules: {
-    '@typescript-eslint/no-var-requires': 'off'
+    '@typescript-eslint/no-var-requires': 'off',
+    '@typescript-eslint/no-unused-vars': [
+      'error',
+      {
+        varsIgnorePattern: '_',
+        argsIgnorePattern: '_'
+      }
+    ],
+    '@typescript-eslint/naming-convention': [
+      'error',
+      {
+        selector: 'class',
+        format: ['PascalCase']
+      },
+      {
+        selector: 'interface',
+        prefix: ['I'],
+        format: ['PascalCase']
+      }
+    ]
   }
 }
