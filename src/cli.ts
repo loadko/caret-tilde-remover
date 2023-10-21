@@ -1,6 +1,7 @@
 import { existsSync as fileExists } from 'node:fs'
 import { join as pathJoin } from 'node:path'
 import { readFile } from 'node:fs/promises'
+import CliTable from 'cli-table3'
 
 import { CliError } from './cli-error'
 import {
@@ -12,11 +13,11 @@ import {
 
 const { name: pkgName } = require('../package')
 
+const CARET_TILDE_REGEX = /^(\^|~).*/
 const PACKAGE_JSON_FILE_NAME = 'package.json'
 const PACKAGE_LOCK_JSON_FILE_NAME = 'package-lock.json'
 
 const CWD = process.cwd()
-const CARET_TILDE_REGEX = /^(\^|~).*/
 
 async function readPackageFile<T>({ fileName }: { fileName: string }): Promise<T> {
   const filePath = pathJoin(CWD, fileName)
@@ -76,6 +77,46 @@ function searchExactDependencies({
   return dependencies
 }
 
+function logDependencyTable({
+  header,
+  dependencies = []
+}: {
+  header: string
+  dependencies: IDependency[]
+}) {
+  console.log(`\n\t${header}`)
+
+  const table = new CliTable({
+    head: [],
+    chars: {
+      top: '',
+      'top-mid': '',
+      'top-left': '',
+      'top-right': '',
+      bottom: '',
+      'bottom-mid': '',
+      'bottom-left': '',
+      'bottom-right': '',
+      left: '',
+      'left-mid': '',
+      mid: '',
+      'mid-mid': '',
+      right: '',
+      'right-mid': '',
+      middle: ''
+    }
+  })
+
+  for (const dependency of dependencies) {
+    const { name, version, exactVersion } = dependency
+
+    const cells = [name, version, '\u2192', exactVersion]
+    table.push(cells)
+  }
+
+  console.log(table.toString())
+}
+
 async function readPackageFiles() {
   // read files
   const packageJson = await readPackageFile<IPackagesJson>({ fileName: PACKAGE_JSON_FILE_NAME })
@@ -109,7 +150,8 @@ async function readPackageFiles() {
     toSearchDependencies: caretTildeDevDependencies
   })
 
-  console.log({ exactDependencies, exactDevDependencies })
+  logDependencyTable({ header: 'dependencies', dependencies: exactDependencies })
+  logDependencyTable({ header: 'devDependencies', dependencies: exactDevDependencies })
 }
 
 async function main() {

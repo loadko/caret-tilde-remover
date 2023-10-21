@@ -22,6 +22,7 @@
     "prepare": "husky install"
   },
   "bin": {
+    "caret-tilde-remover": "./cli.js",
     "ctr": "./cli.js"
   },
   "keywords": [
@@ -59,5 +60,8 @@
     "ts-node": "10.9.1",
     "tsconfig-paths": "4.2.0",
     "typescript": "5.2.2"
+  },
+  "dependencies": {
+    "cli-table3": "0.6.3"
   }
 }
