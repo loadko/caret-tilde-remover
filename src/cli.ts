@@ -1,17 +1,20 @@
 import { existsSync as fileExists } from 'node:fs'
 import { join as pathJoin } from 'node:path'
-import { readFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
 import CliTable from 'cli-table3'
 
 import { CliError } from './cli-error'
 import {
+  CliArgs,
+  CliArgsObject,
   IDependency,
   IPackagesJson,
   IPackagesLockJson,
   IPackagesLockJsonPackagesDependency
 } from './types'
+import yargs from 'yargs'
 
-const { name: pkgName } = require('../package')
+const { name: pkgName, version: pkgVersion, description: pkgDescription } = require('../package')
 
 const CARET_TILDE_REGEX = /^(\^|~).*/
 const PACKAGE_JSON_FILE_NAME = 'package.json'
@@ -19,9 +22,24 @@ const PACKAGE_LOCK_JSON_FILE_NAME = 'package-lock.json'
 
 const CWD = process.cwd()
 
-async function readPackageFile<T>({ fileName }: { fileName: string }): Promise<T> {
-  const filePath = pathJoin(CWD, fileName)
+const cli = yargs
+  .options({
+    run: {
+      alias: 'r',
+      description: 'Run CLI and remove caret(^) and tilde(&) from package.json'
+    }
+  })
+  .version('version', 'Display version infromation', `${pkgName}@${pkgVersion}`)
+  .alias('v', 'version')
+  .alias('h', 'help')
+  .usage(`${pkgName}@${pkgVersion} - ${pkgDescription}\n`)
+  .strict()
 
+function getPackageFilePath({ fileName }: { fileName: string }): string {
+  return pathJoin(CWD, fileName)
+}
+
+async function readPackageFile<T>({ filePath }: { filePath: string }): Promise<T> {
   if (!fileExists(filePath)) {
     throw new CliError({ message: `File path: ${filePath} not found`, type: pkgName })
   }
@@ -114,18 +132,22 @@ function logDependencyTable({
     table.push(cells)
   }
 
-  console.log(table.toString())
+  const tableString = table.toString()
+  console.log(tableString)
 }
 
-async function readPackageFiles() {
+async function readPackageFiles({ updateDependencies = false }: { updateDependencies: boolean }) {
   // read files
-  const packageJson = await readPackageFile<IPackagesJson>({ fileName: PACKAGE_JSON_FILE_NAME })
+  const packageJsonPath = getPackageFilePath({ fileName: PACKAGE_JSON_FILE_NAME })
+  const packageJson = await readPackageFile<IPackagesJson>({ filePath: packageJsonPath })
+
+  const packageLockJsonPath = getPackageFilePath({ fileName: PACKAGE_LOCK_JSON_FILE_NAME })
   const packageLockJson = await readPackageFile<IPackagesLockJson>({
-    fileName: PACKAGE_LOCK_JSON_FILE_NAME
+    filePath: packageLockJsonPath
   })
 
   // search caret & tilde dependencies in package.json
-  const { dependencies = {}, devDependencies = {} } = packageJson
+  const { dependencies = {}, devDependencies = {}, ...packageJsonData } = packageJson
   const caretTildeDependencies = getCaretTildeDependencies({ dependencies })
   const caretTildeDevDependencies = getCaretTildeDependencies({ dependencies: devDependencies })
 
@@ -152,13 +174,44 @@ async function readPackageFiles() {
 
   logDependencyTable({ header: 'dependencies', dependencies: exactDependencies })
   logDependencyTable({ header: 'devDependencies', dependencies: exactDevDependencies })
+
+  if (updateDependencies) {
+    for (const dependency of exactDependencies) {
+      const { name, exactVersion } = dependency
+      if (exactVersion) dependencies[name] = exactVersion
+    }
+
+    for (const dependency of exactDevDependencies) {
+      const { name, exactVersion } = dependency
+      if (exactVersion) devDependencies[name] = exactVersion
+    }
+
+    // save file
+    try {
+      const newPackageJson = {
+        ...packageJsonData,
+        dependencies,
+        devDependencies
+      }
+      const newPackageJsonString = JSON.stringify(newPackageJson, null, 2)
+
+      await writeFile(packageJsonPath, newPackageJsonString, { encoding: 'utf8' })
+    } catch (error) {}
+  }
 }
 
-async function main() {
-  await readPackageFiles()
+async function resolveArgs(args: CliArgs): Promise<CliArgsObject> {
+  return typeof args.then === 'function' ? await args : args
 }
 
-main().catch((err) => {
+async function main(args: CliArgs) {
+  const options = await resolveArgs(args)
+  const { run = false } = options
+
+  await readPackageFiles({ updateDependencies: run })
+}
+
+main(cli.argv as CliArgsObject).catch((err) => {
   setTimeout(() => {
     if (err.type === pkgName) {
       console.log(err.message)
