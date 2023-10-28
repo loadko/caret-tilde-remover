@@ -1,6 +1,6 @@
 {
   "name": "caret-tilde-remover",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Package designed to simplify dependency management by removing caret (^) and tilde (~) version constraints from package.json based on information in package-lock.json",
   "main": "bin/cli.js",
   "files": [
