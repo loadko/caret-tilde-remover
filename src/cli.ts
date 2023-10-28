@@ -2,6 +2,7 @@ import { existsSync as fileExists } from 'node:fs'
 import { join as pathJoin } from 'node:path'
 import { readFile, writeFile } from 'node:fs/promises'
 import CliTable from 'cli-table3'
+import detectJsonIndent from './detec-json-indent'
 
 import { CliError } from './cli-error'
 import {
@@ -39,16 +40,22 @@ function getPackageFilePath({ fileName }: { fileName: string }): string {
   return pathJoin(CWD, fileName)
 }
 
-async function readPackageFile<T>({ filePath }: { filePath: string }): Promise<T> {
+async function readPackageFile<T>({
+  filePath
+}: {
+  filePath: string
+}): Promise<{ json: T; indent: number | string }> {
   if (!fileExists(filePath)) {
     throw new CliError({ message: `File path: ${filePath} not found`, type: pkgName })
   }
 
   try {
     const raw = await readFile(filePath, { encoding: 'utf-8' })
+    const indent = detectJsonIndent(raw)
 
     try {
-      return JSON.parse(raw) as T
+      const json = JSON.parse(raw) as T
+      return { json, indent }
     } catch (err) {
       throw new CliError({ message: `Error parsing file path: ${filePath}`, type: pkgName })
     }
@@ -147,7 +154,10 @@ async function readPackageFiles({ updateDependencies = false }: { updateDependen
   })
 
   // search caret & tilde dependencies in package.json
-  const { dependencies = {}, devDependencies = {}, ...packageJsonData } = packageJson
+  const {
+    json: { dependencies = {}, devDependencies = {}, ...packageJsonData },
+    indent: packageJsonIndent
+  } = packageJson
   const caretTildeDependencies = getCaretTildeDependencies({ dependencies })
   const caretTildeDevDependencies = getCaretTildeDependencies({ dependencies: devDependencies })
 
@@ -162,7 +172,9 @@ async function readPackageFiles({ updateDependencies = false }: { updateDependen
   }
 
   // search dependencies in package-lock.json
-  const { packages: packagesDependencies } = packageLockJson
+  const {
+    json: { packages: packagesDependencies }
+  } = packageLockJson
   const exactDependencies = searchExactDependencies({
     packagesDependencies,
     toSearchDependencies: caretTildeDependencies
@@ -193,10 +205,15 @@ async function readPackageFiles({ updateDependencies = false }: { updateDependen
         dependencies,
         devDependencies
       }
-      const newPackageJsonString = JSON.stringify(newPackageJson, null, 2)
+      const newPackageJsonString = JSON.stringify(newPackageJson, null, packageJsonIndent)
 
       await writeFile(packageJsonPath, newPackageJsonString, { encoding: 'utf8' })
-    } catch (error) {}
+    } catch (error) {
+      throw new CliError({
+        message: `Error writing file path: ${packageJsonPath}`,
+        type: pkgName
+      })
+    }
   }
 }
 
