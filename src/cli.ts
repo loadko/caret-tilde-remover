@@ -30,7 +30,7 @@ const cli = yargs
       description: 'Run CLI and remove caret(^) and tilde(&) from package.json'
     }
   })
-  .version('version', 'Display version infromation', `${pkgName}@${pkgVersion}`)
+  .version('version', 'Display version information', `${pkgName}@${pkgVersion}`)
   .alias('v', 'version')
   .alias('h', 'help')
   .usage(`${pkgName}@${pkgVersion} - ${pkgDescription}\n`)
@@ -208,12 +208,16 @@ async function readPackageFiles({ updateDependencies = false }: { updateDependen
       const newPackageJsonString = JSON.stringify(newPackageJson, null, packageJsonIndent)
 
       await writeFile(packageJsonPath, newPackageJsonString, { encoding: 'utf8' })
+
+      console.log('\nChanges applied!')
     } catch (error) {
       throw new CliError({
         message: `Error writing file path: ${packageJsonPath}`,
         type: pkgName
       })
     }
+  } else {
+    console.log('\nRun `ctr -r` to apply these changes')
   }
 }
 
