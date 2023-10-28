@@ -1,8 +1,8 @@
 # caret-tilde-remover
 
-Package designed to simplify dependency management by removing caret (^) and tilde (~) version constraints from `package.json` based on information in `package-lock.json`. 
+Package designed to simplify dependency management by removing caret (^) and tilde (~) version constraints from `package.json` based on information in `package-lock.json`.
 
-It helps ensure more precise and consistent version control, reducing the risk of unexpected updates that can break the project. 
+It helps ensure more precise and consistent version control, reducing the risk of unexpected updates that can break the project.
 
 With `caret-tilde-remover`, you can easily clean up your dependencies, making your project's version management more straightforward and predictable.
 
@@ -15,6 +15,49 @@ npm install -g caret-tilde-remover
 ```
 
 ## Usage
+
+Once installed just run the CLI in your project folder with
+
+```shell
+ctr
+```
+
+or
+
+```shell
+caret-tilde-remover
+```
+
+This command will print out the `dependencies` and the `devDependencies` with their actual caret (^) or tilde (~) version and their exact version.
+
+Something like this:
+
+```
+
+        dependencies
+ @angular/animations  ~13.3.0  →  13.3.3
+ @angular/common      ~13.3.0  →  13.3.3
+ ...
+
+        devDependencies
+ @angular-devkit/build-angular  ~13.3.2   →  13.3.3
+ @angular/cli                   ~13.3.2   →  13.3.3
+ ...
+
+Run `ctr -r` to apply these changes
+```
+
+In order to remove caret (^) and tilde (~) versions run the following:
+
+```shell
+ctr --run
+```
+
+or
+
+```shell
+ctr -r
+```
 
 ## Contributing
 
