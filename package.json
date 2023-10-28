@@ -9,6 +9,7 @@
     "lib"
   ],
   "scripts": {
+    "prebuild": "rimraf ./lib",
     "build": "tsc -b",
     "build:watch": "tsc -b --watch",
     "lint": "eslint . --ext .js,.ts",
@@ -32,7 +33,11 @@
     "dependency",
     "management"
   ],
-  "author": "Loredan Adrian Konyicska (loadko)",
+  "author": {
+    "name": "Loredan Adrian Konyicska (loadko)",
+    "email": "hola@loadko.net",
+    "url": "https://loadko.net"
+  },
   "license": "LGPL-3.0-or-later",
   "homepage": "https://github.com/loadko/caret-tilde-remover#readme",
   "bugs": {
@@ -45,6 +50,7 @@
   "engines": {
     "node": ">=16"
   },
+  "type": "commonjs",
   "devDependencies": {
     "@types/jest": "29.5.6",
     "@typescript-eslint/eslint-plugin": "6.8.0",
@@ -63,6 +69,7 @@
   },
   "dependencies": {
     "cli-table3": "0.6.3",
+    "rimraf": "5.0.5",
     "yargs": "17.7.2"
   }
 }
