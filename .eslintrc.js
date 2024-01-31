@@ -34,6 +34,7 @@ module.exports = {
         prefix: ['I'],
         format: ['PascalCase']
       }
-    ]
+    ],
+    '@typescript-eslint/no-explicit-any': 'off'
   }
 }

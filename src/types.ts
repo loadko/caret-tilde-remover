@@ -1,6 +1,7 @@
 import { Arguments } from 'yargs'
 
 export interface ICliFlags {
+  debug?: boolean
   run?: boolean
   version?: boolean
   _: (string | number)[]

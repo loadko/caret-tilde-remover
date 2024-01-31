@@ -2,7 +2,7 @@ import { existsSync as fileExists } from 'node:fs'
 import { join as pathJoin } from 'node:path'
 import { readFile, writeFile } from 'node:fs/promises'
 import CliTable from 'cli-table3'
-import detectJsonIndent from './detec-json-indent'
+import detectJsonIndent from './detect-json-indent'
 
 import { CliError } from './cli-error'
 import {
@@ -23,11 +23,17 @@ const PACKAGE_LOCK_JSON_FILE_NAME = 'package-lock.json'
 
 const CWD = process.cwd()
 
+let logActive = false
+
 const cli = yargs
   .options({
     run: {
       alias: 'r',
       description: 'Run CLI and remove caret(^) and tilde(&) from package.json'
+    },
+    debug: {
+      alias: 'd',
+      description: 'Run CLI in debug mode'
     }
   })
   .version('version', 'Display version information', `${pkgName}@${pkgVersion}`)
@@ -38,6 +44,12 @@ const cli = yargs
 
 function getPackageFilePath({ fileName }: { fileName: string }): string {
   return pathJoin(CWD, fileName)
+}
+
+function log(msg: string) {
+  if (logActive) {
+    console.log(`[debug] ${msg}`)
+  }
 }
 
 async function readPackageFile<T>({
@@ -56,10 +68,12 @@ async function readPackageFile<T>({
     try {
       const json = JSON.parse(raw) as T
       return { json, indent }
-    } catch (err) {
+    } catch (error: any) {
+      log(error)
       throw new CliError({ message: `Error parsing file path: ${filePath}`, type: pkgName })
     }
-  } catch (err) {
+  } catch (error: any) {
+    log(error)
     throw new CliError({ message: `Error reading file path: ${filePath}`, type: pkgName })
   }
 }
@@ -69,8 +83,13 @@ function getCaretTildeDependencies({
 }: {
   dependencies: Record<string, string>
 }): Record<string, string> {
-  const carteTildeDependenciesEntries = Object.entries(dependencies).filter(([_, version]) =>
-    CARET_TILDE_REGEX.test(version)
+  const carteTildeDependenciesEntries = Object.entries(dependencies).filter(
+    ([dependency, version]) => {
+      const match = CARET_TILDE_REGEX.test(version)
+      log(`${dependency}: ${version}, match: ${match}`)
+
+      return match
+    }
   )
 
   return Object.fromEntries(carteTildeDependenciesEntries)
@@ -146,9 +165,11 @@ function logDependencyTable({
 async function readPackageFiles({ updateDependencies = false }: { updateDependencies: boolean }) {
   // read files
   const packageJsonPath = getPackageFilePath({ fileName: PACKAGE_JSON_FILE_NAME })
+  log(`packageJsonPath: ${packageJsonPath}`)
   const packageJson = await readPackageFile<IPackagesJson>({ filePath: packageJsonPath })
 
   const packageLockJsonPath = getPackageFilePath({ fileName: PACKAGE_LOCK_JSON_FILE_NAME })
+  log(`packageJsonPath: ${packageLockJsonPath}`)
   const packageLockJson = await readPackageFile<IPackagesLockJson>({
     filePath: packageLockJsonPath
   })
@@ -162,7 +183,7 @@ async function readPackageFiles({ updateDependencies = false }: { updateDependen
   const caretTildeDevDependencies = getCaretTildeDependencies({ dependencies: devDependencies })
 
   if (
-    !Object.keys(caretTildeDependencies).length ||
+    !Object.keys(caretTildeDependencies).length &&
     !Object.keys(caretTildeDevDependencies).length
   ) {
     throw new CliError({
@@ -210,7 +231,8 @@ async function readPackageFiles({ updateDependencies = false }: { updateDependen
       await writeFile(packageJsonPath, newPackageJsonString, { encoding: 'utf8' })
 
       console.log('\nChanges applied!')
-    } catch (error) {
+    } catch (error: any) {
+      log(error)
       throw new CliError({
         message: `Error writing file path: ${packageJsonPath}`,
         type: pkgName
@@ -227,7 +249,8 @@ async function resolveArgs(args: CliArgs): Promise<CliArgsObject> {
 
 async function main(args: CliArgs) {
   const options = await resolveArgs(args)
-  const { run = false } = options
+  const { run = false, debug = false } = options
+  logActive = debug
 
   await readPackageFiles({ updateDependencies: run })
 }
