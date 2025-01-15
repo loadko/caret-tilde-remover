@@ -28,7 +28,7 @@ or
 caret-tilde-remover
 ```
 
-This command will print out the `dependencies` and the `devDependencies` with their actual caret (^) or tilde (~) version and their exact version.
+This command will print out the `dependencies`, `devDependencies` and/or `peerDependencies` with their actual caret (^) or tilde (~) version and their exact version.
 
 Something like this:
 

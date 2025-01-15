@@ -19,6 +19,7 @@ export type CliArgs = CliArgsObject | CliArgsPromise
 export interface IPackagesJson {
   dependencies: Record<string, string>
   devDependencies: Record<string, string>
+  peerDependencies: Record<string, string>
 }
 
 export interface IPackagesLockJson {

@@ -176,15 +176,17 @@ async function readPackageFiles({ updateDependencies = false }: { updateDependen
 
   // search caret & tilde dependencies in package.json
   const {
-    json: { dependencies = {}, devDependencies = {}, ...packageJsonData },
+    json: { dependencies = {}, devDependencies = {}, peerDependencies = {}, ...packageJsonData },
     indent: packageJsonIndent
   } = packageJson
   const caretTildeDependencies = getCaretTildeDependencies({ dependencies })
   const caretTildeDevDependencies = getCaretTildeDependencies({ dependencies: devDependencies })
+  const caretTildePeerDependencies = getCaretTildeDependencies({ dependencies: peerDependencies })
 
   if (
     !Object.keys(caretTildeDependencies).length &&
-    !Object.keys(caretTildeDevDependencies).length
+    !Object.keys(caretTildeDevDependencies).length &&
+    !Object.keys(caretTildePeerDependencies).length
   ) {
     throw new CliError({
       message: `There isn't any dependency with caret(^) or tilde(~)`,
@@ -204,9 +206,14 @@ async function readPackageFiles({ updateDependencies = false }: { updateDependen
     packagesDependencies,
     toSearchDependencies: caretTildeDevDependencies
   })
+  const exactPeerDependencies = searchExactDependencies({
+    packagesDependencies,
+    toSearchDependencies: caretTildePeerDependencies
+  })
 
   logDependencyTable({ header: 'dependencies', dependencies: exactDependencies })
   logDependencyTable({ header: 'devDependencies', dependencies: exactDevDependencies })
+  logDependencyTable({ header: 'peerDependencies', dependencies: exactPeerDependencies })
 
   if (updateDependencies) {
     for (const dependency of exactDependencies) {
@@ -219,12 +226,18 @@ async function readPackageFiles({ updateDependencies = false }: { updateDependen
       if (exactVersion) devDependencies[name] = exactVersion
     }
 
+    for (const dependency of exactPeerDependencies) {
+      const { name, exactVersion } = dependency
+      if (exactVersion) peerDependencies[name] = exactVersion
+    }
+
     // save file
     try {
       const newPackageJson = {
         ...packageJsonData,
         dependencies,
-        devDependencies
+        devDependencies,
+        peerDependencies
       }
       const newPackageJsonString = JSON.stringify(newPackageJson, null, packageJsonIndent)
 
